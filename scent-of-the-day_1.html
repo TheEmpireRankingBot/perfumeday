@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SCENT">
+<meta name="theme-color" content="#0D0A11">
+<title>SCENT — Eau de Jour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Karla:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --obsidian:#0D0A11;
+  --panel:#16111E;
+  --panel-2:#1D1626;
+  --foil-a:#F2D694;
+  --foil-b:#C9973F;
+  --foil-c:#8A5F1E;
+  --gold:#D4A94E;
+  --gold-dim:rgba(212,169,78,.30);
+  --vapor:#EFE6DA;
+  --muted:#8E7F9C;
+  --ember:#D6543C;
+  --chamfer:12px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--obsidian);
+  color:var(--vapor);
+  font-family:'Karla',system-ui,sans-serif;
+  font-size:16px;line-height:1.5;overflow-x:hidden;
+}
+/* ambient light + grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(110% 55% at 50% -12%, rgba(212,169,78,.13), transparent 60%),
+    radial-gradient(80% 45% at 100% 115%, rgba(120,60,140,.12), transparent 60%);
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#app{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 100px)}
+
+/* ---------- foil ---------- */
+.foil{
+  background:linear-gradient(100deg,var(--foil-c) 0%,var(--foil-a) 38%,var(--foil-b) 60%,var(--foil-a) 82%,var(--foil-c) 100%);
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:foil 6s ease-in-out infinite;
+}
+@keyframes foil{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
+@media (prefers-reduced-motion:reduce){.foil{animation:none}}
+
+/* ---------- type ---------- */
+.eyebrow{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--muted);font-weight:800}
+h1.masthead{
+  font-family:'Cinzel',serif;font-weight:900;font-size:30px;line-height:1.02;
+  letter-spacing:.06em;text-transform:uppercase;margin-top:8px;
+}
+.sub{color:var(--muted);font-size:12.5px;margin-top:8px;letter-spacing:.06em}
+
+/* ---------- chamfered panels ---------- */
+.card{
+  position:relative;margin-top:20px;padding:22px 20px;
+  background:linear-gradient(165deg,var(--panel-2),var(--panel));
+  clip-path:polygon(var(--chamfer) 0,100% 0,100% calc(100% - var(--chamfer)),calc(100% - var(--chamfer)) 100%,0 100%,0 var(--chamfer));
+}
+.card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  clip-path:polygon(var(--chamfer) 0,100% 0,100% calc(100% - var(--chamfer)),calc(100% - var(--chamfer)) 100%,0 100%,0 var(--chamfer));
+  background:linear-gradient(165deg,rgba(212,169,78,.45),rgba(212,169,78,.08) 40%,rgba(212,169,78,.30));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;padding:1px;
+}
+.hairline{height:1px;background:linear-gradient(90deg,transparent,var(--gold-dim),transparent);margin:18px 0}
+
+/* ---------- chips ---------- */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{
+  font-size:11.5px;letter-spacing:.1em;color:var(--vapor);padding:7px 12px;
+  border:1px solid rgba(212,169,78,.22);background:rgba(0,0,0,.28);
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+}
+.chip b{color:var(--gold);font-weight:800}
+
+/* ---------- occasions ---------- */
+.occasions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.occasions button{
+  font-family:'Karla';font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;
+  padding:13px 4px;border:1px solid rgba(212,169,78,.20);background:rgba(0,0,0,.22);
+  color:var(--muted);cursor:pointer;transition:all .18s;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.occasions button.sel{background:rgba(212,169,78,.16);color:var(--gold);border-color:var(--gold)}
+
+/* ---------- buttons ---------- */
+.btn{
+  position:relative;width:100%;margin-top:20px;padding:17px;border:1px solid var(--gold);
+  background:linear-gradient(180deg,rgba(212,169,78,.22),rgba(212,169,78,.06));
+  color:var(--gold);font-family:'Karla';font-weight:800;font-size:12.5px;
+  letter-spacing:.3em;text-transform:uppercase;cursor:pointer;overflow:hidden;
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+  transition:transform .12s;
+}
+.btn::after{
+  content:"";position:absolute;top:0;bottom:0;width:44%;left:-60%;
+  background:linear-gradient(100deg,transparent,rgba(242,214,148,.35),transparent);
+  transform:skewX(-18deg);transition:left .5s ease;
+}
+.btn:active{transform:scale(.985)}
+.btn:active::after{left:120%}
+.btn[disabled]{opacity:.4}
+.btn.ghost{border-color:rgba(212,169,78,.25);background:transparent;color:var(--muted);letter-spacing:.2em}
+.btn.danger{border-color:var(--ember);color:var(--ember);background:transparent}
+
+/* ---------- verdict ---------- */
+.verdict{
+  position:relative;margin-top:22px;padding:30px 22px 26px;text-align:center;overflow:hidden;
+  background:linear-gradient(170deg,#1A1322,#120D19);
+  clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px);
+  animation:reveal .55s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes reveal{from{opacity:0;transform:scale(.94) translateY(14px)}to{opacity:1;transform:none}}
+.verdict::before{
+  content:"";position:absolute;inset:0;pointer-events:none;padding:1px;
+  clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px);
+  background:linear-gradient(140deg,var(--foil-a),var(--foil-c) 35%,var(--foil-a) 65%,var(--foil-c));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+.verdict .inner-frame{
+  position:absolute;inset:9px;pointer-events:none;border:1px solid rgba(212,169,78,.22);
+  clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);
+}
+.verdict .sweep{
+  position:absolute;top:0;bottom:0;width:36%;left:-50%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(242,214,148,.09),transparent);
+  transform:skewX(-16deg);animation:sweep 5.5s ease-in-out infinite;
+}
+@keyframes sweep{0%,55%{left:-50%}85%,100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.verdict .sweep{animation:none}.verdict{animation:none}}
+.v-eyebrow{font-size:9.5px;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.v-name{
+  font-family:'Cinzel',serif;font-weight:700;font-size:26px;line-height:1.12;
+  letter-spacing:.04em;text-transform:uppercase;margin:12px 0 4px;
+}
+.v-house{font-size:10.5px;letter-spacing:.36em;text-transform:uppercase;font-weight:800;color:var(--gold);margin-bottom:18px}
+img.v-photo{
+  width:150px;height:150px;object-fit:contain;margin:2px auto 16px;display:block;
+  filter:drop-shadow(0 14px 30px rgba(0,0,0,.65));
+}
+.v-reason{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:19px;line-height:1.45;color:var(--vapor)}
+.v-tip{font-size:12.5px;color:var(--muted);margin-top:16px;letter-spacing:.04em}
+.v-tip b{color:var(--gold);letter-spacing:.14em;text-transform:uppercase;font-size:10.5px}
+
+/* ---------- shelf ---------- */
+.shelf-item{display:flex;gap:14px;align-items:center;padding:15px 0;border-bottom:1px solid rgba(212,169,78,.12);cursor:pointer}
+.shelf-item:last-child{border-bottom:none}
+.shelf-item:active{background:rgba(212,169,78,.04)}
+.shelf-thumb{
+  width:62px;height:62px;flex:none;background:#120D19;overflow:hidden;
+  border:1px solid rgba(212,169,78,.25);display:flex;align-items:center;justify-content:center;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.shelf-thumb img{width:100%;height:100%;object-fit:contain}
+.shelf-info{flex:1;min-width:0}
+.shelf-name{font-family:'Cinzel',serif;font-weight:700;font-size:15.5px;letter-spacing:.03em;text-transform:uppercase;line-height:1.2}
+.shelf-house{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-top:3px}
+.accords{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.accord{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 8px;border:1px solid}
+.shelf-edit{color:var(--muted);font-size:11px;letter-spacing:.2em;flex:none;font-weight:800}
+.empty{color:var(--muted);text-align:center;padding:28px 10px;font-size:14px}
+.empty i{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:20px;color:var(--vapor);display:block;margin-bottom:6px}
+
+/* ---------- forms ---------- */
+label.f{display:block;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:18px 0 7px}
+input.f{
+  width:100%;padding:14px;border:1px solid rgba(212,169,78,.22);
+  background:rgba(0,0,0,.3);color:var(--vapor);font-family:'Karla';font-size:16px;outline:none;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+input.f:focus{border-color:var(--gold)}
+.note{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6}
+.note a{color:var(--gold)}
+.note b{color:var(--vapor)}
+
+/* ---------- status ---------- */
+.status{margin-top:14px;font-size:13px;color:var(--muted);text-align:center;min-height:18px}
+.status.err{color:var(--ember)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(212,169,78,.25);border-top-color:var(--gold);border-radius:50%;vertical-align:-2px;margin-right:8px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.histrow{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.histrow b{color:var(--vapor);font-weight:700;font-family:'Cinzel',serif;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+
+/* ---------- tabs ---------- */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  background:rgba(13,10,17,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(212,169,78,.22);
+  padding:12px 0 calc(var(--safe-bottom) + 12px);
+}
+nav .row{max-width:520px;margin:0 auto;display:flex;justify-content:space-around}
+nav button{
+  background:none;border:none;color:var(--muted);font-family:'Karla';
+  font-size:10px;letter-spacing:.3em;text-transform:uppercase;font-weight:800;
+  padding:8px 14px;cursor:pointer;transition:color .2s;
+}
+nav button.active{color:var(--gold)}
+nav button.active::after{content:"";display:block;height:2px;background:linear-gradient(90deg,var(--foil-c),var(--foil-a),var(--foil-c));margin-top:6px}
+.page{display:none;animation:fade .3s ease}
+.page.show{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- bottom sheet (edit bottle) ---------- */
+#sheetBack{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:90;display:none}
+#sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:100;display:none;
+  max-width:520px;margin:0 auto;padding:24px 22px calc(var(--safe-bottom) + 24px);
+  background:linear-gradient(170deg,var(--panel-2),var(--panel));
+  border-top:1px solid var(--gold);
+  clip-path:polygon(20px 0,calc(100% - 20px) 0,100% 20px,100% 100%,0 100%,0 20px);
+  animation:up .3s cubic-bezier(.2,.9,.3,1.1);
+}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+#sheet.open,#sheetBack.open{display:block}
+.sheet-head{display:flex;gap:14px;align-items:center}
+.sheet-thumb{width:70px;height:70px;flex:none;background:#120D19;border:1px solid rgba(212,169,78,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.sheet-thumb img{width:100%;height:100%;object-fit:contain}
+.sheet-title{font-family:'Cinzel',serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.03em;line-height:1.2}
+.sheet-sub{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-top:3px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TODAY ============ -->
+  <section class="page show" id="page-today">
+    <div class="eyebrow">Eau de Jour</div>
+    <h1 class="masthead"><span class="foil">Scent of the Day</span></h1>
+    <div class="sub" id="dateline"></div>
+
+    <div class="card">
+      <div class="eyebrow">Conditions</div>
+      <div class="chips" id="weatherChips"><span class="chip">Reading the air…</span></div>
+
+      <div class="hairline"></div>
+      <div class="eyebrow">Occasion</div>
+      <div class="occasions" id="occasions"></div>
+
+      <button class="btn" id="btnPick">Choose my scent</button>
+      <div class="status" id="pickStatus"></div>
+    </div>
+
+    <div id="verdictWrap"></div>
+  </section>
+
+  <!-- ============ SHELF ============ -->
+  <section class="page" id="page-shelf">
+    <div class="eyebrow">The Collection</div>
+    <h1 class="masthead"><span class="foil">Your Shelf</span></h1>
+
+    <div class="card">
+      <label class="f" for="inName">Perfume name</label>
+      <input class="f" id="inName" placeholder="e.g. Bleu de Chanel EDP" autocomplete="off">
+      <label class="f" for="inHouse">House <span style="opacity:.5;letter-spacing:0;text-transform:none">(optional)</span></label>
+      <input class="f" id="inHouse" placeholder="e.g. Chanel" autocomplete="off">
+      <button class="btn" id="btnAdd">Add &amp; identify</button>
+      <div class="status" id="addStatus"></div>
+      <div class="note">On add, the AI searches the web for this fragrance — accords, character, and a bottle photo. Tap any bottle afterwards to swap in your own photo.</div>
+    </div>
+
+    <div class="card"><div id="shelfList"></div></div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="page" id="page-settings">
+    <div class="eyebrow">Atelier</div>
+    <h1 class="masthead"><span class="foil">Settings</span></h1>
+
+    <div class="card">
+      <label class="f" for="inKey">Anthropic API key</label>
+      <input class="f" id="inKey" type="password" placeholder="sk-ant-…" autocomplete="off">
+      <button class="btn" id="btnSaveKey">Save key</button>
+      <div class="status" id="keyStatus"></div>
+      <div class="note">Stored only on this device, sent only to <b>api.anthropic.com</b>. Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.</div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Recent wears</div>
+      <div id="histList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <button class="btn danger" style="margin-top:0" id="btnWipe">Erase all data</button>
+    </div>
+  </section>
+</div>
+
+<!-- ============ EDIT SHEET ============ -->
+<div id="sheetBack"></div>
+<div id="sheet">
+  <div class="sheet-head">
+    <div class="sheet-thumb" id="sheetThumb"></div>
+    <div>
+      <div class="sheet-title" id="sheetName"></div>
+      <div class="sheet-sub" id="sheetHouse"></div>
+    </div>
+  </div>
+  <label class="f" for="sheetUrl">Image or Fragrantica URL</label>
+  <input class="f" id="sheetUrl" placeholder="fragrantica.com page or …/bottle.jpg" autocomplete="off">
+  <div class="note" id="sheetFrag" style="margin-top:8px"></div>
+  <div class="row2">
+    <button class="btn ghost" id="btnPhoto">Take / upload photo</button>
+    <button class="btn ghost" id="btnClearImg">Remove image</button>
+  </div>
+  <input type="file" id="fileInput" accept="image/*" style="display:none">
+  <button class="btn" id="btnSheetSave">Save bottle</button>
+  <div class="row2">
+    <button class="btn danger" id="btnSheetDelete">Delete</button>
+    <button class="btn ghost" id="btnSheetClose">Close</button>
+  </div>
+</div>
+
+<nav>
+  <div class="row">
+    <button data-page="today" class="active">Today</button>
+    <button data-page="shelf">Shelf</button>
+    <button data-page="settings">Settings</button>
+  </div>
+</nav>
+
+<script>
+/* ================= storage ================= */
+const mem = {};
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return mem[k] ?? null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ mem[k]=v; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){ delete mem[k]; } }
+};
+const load=(k,d)=>{const r=store.get(k);if(!r)return d;try{return JSON.parse(r)}catch(e){return d}};
+const save=(k,v)=>store.set(k,JSON.stringify(v));
+
+let state = {
+  key: store.get('sotd_key') || '',
+  perfumes: load('sotd_perfumes', []),
+  history: load('sotd_history', []),
+  occasion: 'Work',
+  weather: null
+};
+
+/* ================= util ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const proxied=url=>url?`https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//,''))}&w=440&fit=contain`:'';
+/* Fragrantica: page URLs end in the perfume's DB id, e.g. ...Bleu-de-Chanel-25967.html
+   The bottle photo is always at fcdn.fragrantica.com/images/perfume/375x500.{id}.jpg */
+const fragId=u=>{const m=(u||'').match(/-(\d+)\.html/);return m?m[1]:'';};
+const fragImg=id=>id?`https://fcdn.fragrantica.com/images/perfume/375x500.${id}.jpg`:'';
+/* priority: user photo → fragrantica-derived → any other web image */
+const imgSrc=p=>{
+  if(p.imageData)return p.imageData;
+  const fid=fragId(p.fragUrl);
+  if(fid)return proxied(fragImg(fid));
+  return p.imageUrl?proxied(p.imageUrl):'';
+};
+/* on image error, fall back once to imageUrl, then to the tinted bottle */
+window._imgErr=(el,id,size)=>{
+  const p=state.perfumes.find(x=>x.id===id)||{};
+  if(el.dataset.step!=='1'&&p.imageUrl&&fragId(p.fragUrl)){
+    el.dataset.step='1';el.src=proxied(p.imageUrl);return;
+  }
+  el.outerHTML=bottleSVG(p,size);
+};
+
+const ACCORD_COLORS={citrus:'#E8C34A',fresh:'#7FB8C9',aquatic:'#6FA8C9',marine:'#6FA8C9',woody:'#8B5E3C',floral:'#D98BA6',spicy:'#C0562F',sweet:'#C98A4B',gourmand:'#B5763F',vanilla:'#D9B98A',musky:'#B9A08F',musk:'#B9A08F',green:'#7FA35C',amber:'#D4A94E',powdery:'#D9C7D4',leather:'#6E4A34',smoky:'#6B5F6E',oud:'#5C4033',fruity:'#D07A5A',aromatic:'#8AA37F',tobacco:'#9A6B3F',rose:'#C96A85',lavender:'#9A8AC9',iris:'#A99AC0'};
+const accordColor=a=>{a=(a||'').toLowerCase();for(const k in ACCORD_COLORS)if(a.includes(k))return ACCORD_COLORS[k];return '#8E7F9C';};
+
+function bottleSVG(p,size){
+  const cs=(p.accords&&p.accords.length?p.accords.slice(0,3):['amber']).map(accordColor);
+  const id='g'+uid();
+  const stops=cs.map((c,i)=>`<stop offset="${Math.round(i/Math.max(cs.length-1,1)*100)}%" stop-color="${c}"/>`).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" style="display:block;margin:0 auto">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">${stops}</linearGradient></defs>
+    <rect x="42" y="8" width="16" height="10" fill="#4A3D55"/>
+    <rect x="45" y="18" width="10" height="8" fill="#3A2F44"/>
+    <path d="M30 30 h40 l6 6 v50 l-6 6 h-40 l-6 -6 v-50 z" fill="url(#${id})" opacity="0.85" stroke="rgba(239,230,218,.4)" stroke-width="1.5"/>
+    <rect x="34" y="46" width="32" height="22" fill="rgba(13,10,17,.6)" stroke="rgba(212,169,78,.65)" stroke-width="0.8"/>
+  </svg>`;
+}
+
+/* ================= tabs ================= */
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+    $('#page-'+b.dataset.page).classList.add('show');
+  };
+});
+
+/* ================= dateline & occasions ================= */
+$('#dateline').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+const OCCASIONS=['Work','Casual','Date','Night out','Sport','Special'];
+const occWrap=$('#occasions');
+OCCASIONS.forEach(o=>{
+  const b=document.createElement('button');b.textContent=o;
+  if(o===state.occasion)b.classList.add('sel');
+  b.onclick=()=>{state.occasion=o;occWrap.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');};
+  occWrap.appendChild(b);
+});
+
+/* ================= weather ================= */
+const WMO={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Drizzle',53:'Drizzle',55:'Drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+async function fetchWeather(lat,lon){
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max,precipitation_probability_max&timezone=auto&forecast_days=1`;
+  const r=await fetch(u);const d=await r.json();
+  state.weather={temp:Math.round(d.current.temperature_2m),humidity:d.current.relative_humidity_2m,desc:WMO[d.current.weather_code]||'—',max:Math.round(d.daily.temperature_2m_max[0]),rain:d.daily.precipitation_probability_max[0]};
+  const w=state.weather;
+  $('#weatherChips').innerHTML=
+    `<span class="chip"><b>${w.temp}°C</b> · ${esc(w.desc)}</span>`+
+    `<span class="chip">Humidity <b>${w.humidity}%</b></span>`+
+    `<span class="chip">High <b>${w.max}°C</b></span>`+
+    `<span class="chip">Rain <b>${w.rain}%</b></span>`;
+}
+function initWeather(){
+  const fb=()=>fetchWeather(1.35,103.82).catch(()=>{$('#weatherChips').innerHTML='<span class="chip">Weather unavailable</span>';});
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(p=>fetchWeather(p.coords.latitude,p.coords.longitude).catch(fb),fb,{timeout:6000,maximumAge:600000});
+  }else fb();
+}
+initWeather();
+
+/* ================= anthropic ================= */
+async function askClaude(prompt,useSearch){
+  if(!state.key)throw new Error('NO_KEY');
+  const body={model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:prompt}]};
+  if(useSearch)body.tools=[{type:'web_search_20250305',name:'web_search',max_uses:3}];
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':state.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify(body)
+  });
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message||'API error');
+  const text=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  const m=text.match(/\{[\s\S]*\}/);
+  if(!m)throw new Error('No JSON in response');
+  return JSON.parse(m[0]);
+}
+
+/* ================= shelf ================= */
+function renderShelf(){
+  const el=$('#shelfList');
+  if(!state.perfumes.length){
+    el.innerHTML='<div class="empty"><i>The shelf is bare.</i>Add your first bottle above.</div>';return;
+  }
+  el.innerHTML=state.perfumes.map(p=>{
+    const src=imgSrc(p);
+    return `<div class="shelf-item" onclick="window._edit('${p.id}')">
+      <div class="shelf-thumb">${src?`<img src="${esc(src)}" alt="" onerror="window._imgErr(this,'${p.id}',46)">`:bottleSVG(p,46)}</div>
+      <div class="shelf-info">
+        <div class="shelf-name">${esc(p.name)}</div>
+        <div class="shelf-house">${esc(p.house||'')}</div>
+        <div class="accords">${(p.accords||[]).slice(0,4).map(a=>`<span class="accord" style="border-color:${accordColor(a)}66;color:${accordColor(a)}">${esc(a)}</span>`).join('')}</div>
+      </div>
+      <div class="shelf-edit">EDIT</div>
+    </div>`;
+  }).join('');
+}
+window._bottle=(id,s)=>{const p=state.perfumes.find(x=>x.id===id)||{};return bottleSVG(p,s);};
+
+$('#btnAdd').onclick=async()=>{
+  const name=$('#inName').value.trim(),house=$('#inHouse').value.trim();
+  const st=$('#addStatus');st.classList.remove('err');
+  if(!name){st.textContent='Give the perfume a name first.';return;}
+  const p={id:uid(),name,house,accords:[],vibe:'',imageUrl:'',imageData:'',addedAt:Date.now()};
+  $('#btnAdd').disabled=true;
+  st.innerHTML='<span class="spin"></span>Searching the web for this fragrance…';
+  try{
+    const info=await askClaude(
+`Identify this fragrance: "${name}"${house?` by ${house}`:''}.
+Search the web for its Fragrantica page to confirm it. Then respond with ONLY a JSON object, no other text, no markdown fences:
+{"name":"corrected full name","house":"brand","accords":["3-5 main accords, single lowercase words like citrus, woody, amber"],"vibe":"one short sentence on its character","bestFor":"one short phrase e.g. hot-weather office wear","fragranticaUrl":"the full fragrantica.com perfume page URL ending in a number then .html, or empty string","imageUrl":"a DIRECT bottle image URL from a retailer as backup, or empty string"}`,true);
+    Object.assign(p,{
+      name:info.name||name,house:info.house||house,
+      accords:Array.isArray(info.accords)?info.accords:[],
+      vibe:info.vibe||'',bestFor:info.bestFor||'',
+      fragUrl:(typeof info.fragranticaUrl==='string'&&fragId(info.fragranticaUrl))?info.fragranticaUrl:'',
+      imageUrl:(typeof info.imageUrl==='string'&&info.imageUrl.startsWith('http'))?info.imageUrl:''
+    });
+    st.textContent=`Filed: ${p.name}.`;
+  }catch(e){
+    if(e.message==='NO_KEY'){st.classList.add('err');st.textContent='Add your API key in Settings first — saved without details.';}
+    else{st.classList.add('err');st.textContent='Saved, but identification failed: '+e.message;}
+  }
+  state.perfumes.push(p);save('sotd_perfumes',state.perfumes);
+  $('#inName').value='';$('#inHouse').value='';
+  renderShelf();$('#btnAdd').disabled=false;
+};
+
+/* ================= edit sheet ================= */
+let editId=null;
+window._edit=id=>{
+  const p=state.perfumes.find(x=>x.id===id);if(!p)return;
+  editId=id;
+  $('#sheetName').textContent=p.name;
+  $('#sheetHouse').textContent=p.house||'';
+  $('#sheetUrl').value=p.fragUrl||p.imageUrl||'';
+  refreshSheetThumb(p);
+  $('#sheet').classList.add('open');$('#sheetBack').classList.add('open');
+};
+function refreshSheetThumb(p){
+  const src=imgSrc(p);
+  $('#sheetThumb').innerHTML=src?`<img src="${esc(src)}" onerror="window._imgErr(this,'${p.id}',52)">`:bottleSVG(p,52);
+  $('#sheetFrag').innerHTML=p.fragUrl?`<a href="${esc(p.fragUrl)}" target="_blank" rel="noopener">View on Fragrantica ↗</a>`:'';
+}
+function closeSheet(){editId=null;$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open');}
+$('#btnSheetClose').onclick=closeSheet;
+$('#sheetBack').onclick=closeSheet;
+
+$('#btnPhoto').onclick=()=>$('#fileInput').click();
+$('#fileInput').onchange=e=>{
+  const f=e.target.files[0];if(!f||!editId)return;
+  const p=state.perfumes.find(x=>x.id===editId);if(!p)return;
+  const img=new Image();
+  img.onload=()=>{
+    const MAX=360;
+    const sc=Math.min(1,MAX/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');
+    c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    p.imageData=c.toDataURL('image/jpeg',0.82);
+    save('sotd_perfumes',state.perfumes);
+    refreshSheetThumb(p);renderShelf();
+    URL.revokeObjectURL(img.src);
+  };
+  img.src=URL.createObjectURL(f);
+  e.target.value='';
+};
+$('#btnClearImg').onclick=()=>{
+  const p=state.perfumes.find(x=>x.id===editId);if(!p)return;
+  p.imageData='';p.imageUrl='';p.fragUrl='';$('#sheetUrl').value='';$('#sheetFrag').innerHTML='';
+  save('sotd_perfumes',state.perfumes);
+  refreshSheetThumb(p);renderShelf();
+};
+$('#btnSheetSave').onclick=()=>{
+  const p=state.perfumes.find(x=>x.id===editId);if(!p)return;
+  const u=$('#sheetUrl').value.trim();
+  if(u&&fragId(u)){p.fragUrl=u.startsWith('http')?u:'https://'+u;p.imageData='';}
+  else if(u&&u.startsWith('http')){p.imageUrl=u;p.imageData='';}
+  else if(!u){p.imageUrl='';p.fragUrl='';}
+  save('sotd_perfumes',state.perfumes);
+  renderShelf();closeSheet();
+};
+$('#btnSheetDelete').onclick=()=>{
+  const p=state.perfumes.find(x=>x.id===editId);if(!p)return;
+  if(confirm(`Remove ${p.name} from your shelf?`)){
+    state.perfumes=state.perfumes.filter(x=>x.id!==editId);
+    save('sotd_perfumes',state.perfumes);
+    renderShelf();closeSheet();
+  }
+};
+
+/* ================= daily pick ================= */
+$('#btnPick').onclick=async()=>{
+  const st=$('#pickStatus');st.classList.remove('err');
+  if(!state.perfumes.length){st.classList.add('err');st.textContent='Your shelf is empty — add perfumes first.';return;}
+  if(!state.key){st.classList.add('err');st.textContent='Add your Anthropic API key in Settings.';return;}
+  $('#btnPick').disabled=true;
+  st.innerHTML='<span class="spin"></span>Consulting the nose…';
+  $('#verdictWrap').innerHTML='';
+  const w=state.weather;
+  const recent=state.history.slice(0,5).map(h=>`${h.name} (${h.date})`).join('; ')||'none';
+  try{
+    const res=await askClaude(
+`You are a discerning fragrance advisor. Pick exactly one perfume from my shelf for today.
+
+Shelf: ${JSON.stringify(state.perfumes.map(p=>({id:p.id,name:p.name,house:p.house,accords:p.accords,vibe:p.vibe,bestFor:p.bestFor})))}
+Weather: ${w?`${w.temp}°C now (high ${w.max}°C), humidity ${w.humidity}%, ${w.desc}, rain chance ${w.rain}%`:'unknown'}
+Occasion: ${state.occasion}
+Time now: ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}, ${new Date().toLocaleDateString(undefined,{weekday:'long'})}
+Recently worn (avoid repeating if reasonable): ${recent}
+
+Consider projection in heat/humidity, occasion appropriateness, and variety. Respond with ONLY JSON, no other text:
+{"id":"chosen perfume id","reason":"2 sentences, elegant but concrete, why this scent today","sprays":"where and how many sprays, one short phrase"}`,false);
+    const p=state.perfumes.find(x=>x.id===res.id)||state.perfumes[0];
+    const src=imgSrc(p);
+    const img=src?`<img class="v-photo" src="${esc(src)}" alt="${esc(p.name)}" onerror="window._imgErr(this,'${p.id}',150)">`:bottleSVG(p,150);
+    $('#verdictWrap').innerHTML=`
+      <div class="verdict">
+        <div class="inner-frame"></div><div class="sweep"></div>
+        <div class="v-eyebrow">Today you wear</div>
+        <div class="v-name foil">${esc(p.name)}</div>
+        <div class="v-house">${esc(p.house||'')}</div>
+        ${img}
+        <div class="v-reason">“${esc(res.reason)}”</div>
+        <div class="v-tip"><b>Application</b> · ${esc(res.sprays||'2–3 sprays, neck and wrists')}</div>
+        <button class="btn" style="margin-top:22px" onclick="window._wear('${p.id}',this)">Wear it</button>
+      </div>`;
+    st.textContent='';
+  }catch(e){
+    st.classList.add('err');
+    st.textContent=e.message==='NO_KEY'?'Add your API key in Settings.':'Could not pick: '+e.message;
+  }
+  $('#btnPick').disabled=false;
+};
+
+window._wear=(id,btn)=>{
+  const p=state.perfumes.find(x=>x.id===id);if(!p)return;
+  state.history.unshift({name:p.name,date:new Date().toLocaleDateString(undefined,{day:'numeric',month:'short'})});
+  state.history=state.history.slice(0,14);
+  save('sotd_history',state.history);renderHistory();
+  btn.textContent='Worn ✓';btn.disabled=true;
+};
+
+/* ================= settings ================= */
+function renderHistory(){
+  $('#histList').innerHTML=state.history.length
+    ?state.history.map(h=>`<div class="histrow"><b>${esc(h.name)}</b><span>${esc(h.date)}</span></div>`).join('')
+    :'<div class="empty" style="padding:10px"><i>Nothing worn yet.</i></div>';
+}
+if(state.key)$('#inKey').value=state.key;
+$('#btnSaveKey').onclick=()=>{
+  state.key=$('#inKey').value.trim();
+  store.set('sotd_key',state.key);
+  $('#keyStatus').textContent=state.key?'Key saved on this device.':'Key cleared.';
+};
+$('#btnWipe').onclick=()=>{
+  if(confirm('Erase your shelf, history and API key from this device?')){
+    ['sotd_key','sotd_perfumes','sotd_history'].forEach(store.del);
+    state={key:'',perfumes:[],history:[],occasion:state.occasion,weather:state.weather};
+    $('#inKey').value='';renderShelf();renderHistory();
+    $('#keyStatus').textContent='All data erased.';
+  }
+};
+
+renderShelf();renderHistory();
+</script>
+</body>
+</html>
