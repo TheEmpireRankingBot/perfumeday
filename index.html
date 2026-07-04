@@ -188,9 +188,28 @@ input.f{
   clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
 }
 input.f:focus{border-color:var(--gold)}
+textarea.f{
+  width:100%;padding:14px;border:1px solid rgba(212,169,78,.22);
+  background:rgba(0,0,0,.3);color:var(--vapor);font-family:'Karla';font-size:16px;outline:none;
+  min-height:96px;resize:vertical;line-height:1.5;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+textarea.f:focus{border-color:var(--gold)}
 .note{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6}
 .note a{color:var(--gold)}
 .note b{color:var(--vapor)}
+
+/* ---------- feedback (post-wear reactions) ---------- */
+.fbrow{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.fbrow button{
+  font-family:'Karla';font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;
+  padding:9px 11px;border:1px solid rgba(212,169,78,.22);background:rgba(0,0,0,.28);
+  color:var(--muted);cursor:pointer;transition:all .18s;
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+}
+.fbrow button.sel{background:rgba(212,169,78,.16);color:var(--gold);border-color:var(--gold)}
+.fbrow button[disabled]{opacity:.5}
+.rating-tag{color:var(--gold);font-weight:800;letter-spacing:.06em}
 
 /* ---------- status ---------- */
 .status{margin-top:14px;font-size:13px;color:var(--muted);text-align:center;min-height:18px}
@@ -306,6 +325,15 @@ nav button.active::after{content:"";display:block;height:2px;background:linear-g
     </div>
 
     <div class="card">
+      <div class="eyebrow">Advisor memory</div>
+      <label class="f" for="inTaste">What the nose should remember</label>
+      <textarea class="f" id="inTaste" placeholder="e.g. I love vanilla and amber in cold weather · nothing too sweet at the office · keep aquatics for the gym · rose makes me sneeze"></textarea>
+      <button class="btn" id="btnSaveTaste">Save memory</button>
+      <div class="status" id="tasteStatus"></div>
+      <div class="note">Free-form notes about your taste. The advisor reads this — plus how you rate each scent after wearing it — every time it picks, so its choices get more <b>you</b> over time.</div>
+    </div>
+
+    <div class="card">
       <div class="eyebrow">Recent wears</div>
       <div id="histList" style="margin-top:12px"></div>
     </div>
@@ -367,7 +395,8 @@ let state = {
   occasion: 'Work',
   weather: null,
   updatedAt: load('sotd_updatedAt', 0),
-  deleted: load('sotd_deleted', {})
+  deleted: load('sotd_deleted', {}),
+  taste: store.get('sotd_taste') || ''
 };
 
 /* ================= util ================= */
@@ -600,16 +629,18 @@ $('#btnPick').onclick=async()=>{
   const recent=state.history.slice(0,5).map(h=>`${h.name} (${h.date})`).join('; ')||'none';
   try{
     const res=await askClaude(
-`You are a discerning fragrance advisor. Pick exactly one perfume from my shelf for today.
+`You are a discerning fragrance advisor who remembers this person's taste. Pick exactly one perfume from my shelf for today.
 
 Shelf: ${JSON.stringify(state.perfumes.map(p=>({id:p.id,name:p.name,house:p.house,accords:p.accords,vibe:p.vibe,bestFor:p.bestFor})))}
 Weather: ${w?`${w.temp}°C now (high ${w.max}°C), humidity ${w.humidity}%, ${w.desc}, rain chance ${w.rain}%`:'unknown'}
 Occasion: ${state.occasion}
 Time now: ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}, ${new Date().toLocaleDateString(undefined,{weekday:'long'})}
 Recently worn (avoid repeating if reasonable): ${recent}
+My taste notes: ${state.taste?JSON.stringify(state.taste):'none given'}
+My reactions to past wears: ${tasteContext()||'none yet'}
 
-Consider projection in heat/humidity, occasion appropriateness, and variety. Respond with ONLY JSON, no other text:
-{"id":"chosen perfume id","reason":"2 sentences, elegant but concrete, why this scent today","sprays":"where and how many sprays, one short phrase"}`,false);
+Weigh my taste notes and reactions heavily: lean toward what I've loved, honour the notes I gave, and avoid scents I found too strong, too faint, or wrong for the occasion. Also consider projection in heat/humidity, occasion appropriateness, and variety. Respond with ONLY JSON, no other text:
+{"id":"chosen perfume id","reason":"2 sentences, elegant but concrete; if it fits, nod to why it suits my remembered taste","sprays":"where and how many sprays, one short phrase"}`,false);
     const p=state.perfumes.find(x=>x.id===res.id)||state.perfumes[0];
     const src=imgSrc(p);
     const img=src?`<img class="v-photo" src="${esc(src)}" alt="${esc(p.name)}" onerror="window._imgErr(this,'${p.id}',150)">`:bottleSVG(p,150);
@@ -632,18 +663,49 @@ Consider projection in heat/humidity, occasion appropriateness, and variety. Res
   $('#btnPick').disabled=false;
 };
 
+/* how a wear felt — feeds the advisor's memory */
+const FEEDBACK=[
+  {k:'love',label:'Loved it'},
+  {k:'good',label:'Solid'},
+  {k:'strong',label:'Too strong'},
+  {k:'faint',label:'Too faint'},
+  {k:'wrong',label:'Wrong vibe'}
+];
+const FB_LABEL={love:'Loved',good:'Liked',strong:'Too strong',faint:'Too faint',wrong:'Wrong vibe'};
+const FB_TAG={love:'♥ loved',good:'liked',strong:'↑ strong',faint:'↓ faint',wrong:'✕ off'};
+
+/* summarise reactions for the pick prompt */
+function tasteContext(){
+  const groups={};
+  state.history.filter(h=>h.rating).forEach(h=>{(groups[h.rating]=groups[h.rating]||[]).push(h.name);});
+  return Object.keys(groups)
+    .map(k=>`${FB_LABEL[k]||k}: ${[...new Set(groups[k])].slice(0,8).join(', ')}`)
+    .join('. ');
+}
+
 window._wear=(id,btn)=>{
   const p=state.perfumes.find(x=>x.id===id);if(!p)return;
-  state.history.unshift({name:p.name,date:new Date().toLocaleDateString(undefined,{day:'numeric',month:'short'})});
-  state.history=state.history.slice(0,14);
-  save('sotd_history',state.history);renderHistory();
-  btn.textContent='Worn ✓';btn.disabled=true;touched();
+  const hid=uid();
+  state.history.unshift({hid,id,name:p.name,date:new Date().toLocaleDateString(undefined,{day:'numeric',month:'short'}),occasion:state.occasion,rating:''});
+  state.history=state.history.slice(0,30);
+  save('sotd_history',state.history);renderHistory();touched();
+  const wrap=btn.parentElement;btn.remove();
+  const fb=document.createElement('div');
+  fb.innerHTML=`<div class="v-tip" style="margin-top:20px"><b>How did it wear?</b></div>
+    <div class="fbrow">${FEEDBACK.map(f=>`<button onclick="window._rate('${hid}','${f.k}',this)">${f.label}</button>`).join('')}</div>`;
+  wrap.appendChild(fb);
+};
+
+window._rate=(hid,k,btn)=>{
+  const h=state.history.find(x=>x.hid===hid);if(h)h.rating=k;
+  save('sotd_history',state.history);renderHistory();touched();
+  btn.parentElement.querySelectorAll('button').forEach(b=>{b.classList.toggle('sel',b===btn);b.disabled=true;});
 };
 
 /* ================= settings ================= */
 function renderHistory(){
   $('#histList').innerHTML=state.history.length
-    ?state.history.map(h=>`<div class="histrow"><b>${esc(h.name)}</b><span>${esc(h.date)}</span></div>`).join('')
+    ?state.history.slice(0,20).map(h=>`<div class="histrow"><b>${esc(h.name)}</b><span>${h.rating?`<span class="rating-tag">${esc(FB_TAG[h.rating]||'')}</span> · `:''}${esc(h.date)}</span></div>`).join('')
     :'<div class="empty" style="padding:10px"><i>Nothing worn yet.</i></div>';
 }
 if(state.key)$('#inKey').value=state.key;
@@ -653,11 +715,18 @@ $('#btnSaveKey').onclick=()=>{
   $('#keyStatus').textContent=state.key?'Key saved on this device.':'Key cleared.';
   touched();
 };
+if(state.taste)$('#inTaste').value=state.taste;
+$('#btnSaveTaste').onclick=()=>{
+  state.taste=$('#inTaste').value.trim();
+  store.set('sotd_taste',state.taste);
+  $('#tasteStatus').textContent=state.taste?'Memory saved — the nose will remember.':'Memory cleared.';
+  touched();
+};
 $('#btnWipe').onclick=()=>{
-  if(confirm('Erase your shelf, history, API key and sync link from this device?')){
-    ['sotd_key','sotd_perfumes','sotd_history','sotd_updatedAt','sotd_deleted','sotd_gh_token','sotd_gist_id','sotd_last_sync'].forEach(store.del);
-    state={key:'',perfumes:[],history:[],occasion:state.occasion,weather:state.weather,updatedAt:0,deleted:{}};
-    $('#inKey').value='';$('#inToken').value='';renderShelf();renderHistory();
+  if(confirm('Erase your shelf, history, memory, API key and sync link from this device?')){
+    ['sotd_key','sotd_perfumes','sotd_history','sotd_taste','sotd_updatedAt','sotd_deleted','sotd_gh_token','sotd_gist_id','sotd_last_sync'].forEach(store.del);
+    state={key:'',perfumes:[],history:[],occasion:state.occasion,weather:state.weather,updatedAt:0,deleted:{},taste:''};
+    $('#inKey').value='';$('#inToken').value='';$('#inTaste').value='';renderShelf();renderHistory();
     $('#keyStatus').textContent='All data erased.';
     setSyncStatus('');
   }
@@ -716,7 +785,7 @@ const GH={
 
 function setSyncStatus(html,err){const el=$('#syncStatus');if(!el)return;el.classList.toggle('err',!!err);el.innerHTML=html;}
 function syncedLabel(){return 'Synced ✓ '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
-function localPayload(){return {v:1,updatedAt:state.updatedAt||0,occasion:state.occasion,key:state.key,perfumes:state.perfumes,history:state.history,deleted:state.deleted||{}};}
+function localPayload(){return {v:1,updatedAt:state.updatedAt||0,occasion:state.occasion,key:state.key,taste:state.taste||'',perfumes:state.perfumes,history:state.history,deleted:state.deleted||{}};}
 
 /* union-merge remote into local so edits from both devices survive;
    tombstones (state.deleted) make deletions win over stale copies */
@@ -737,12 +806,18 @@ function mergeRemote(remote){
     .filter(p=>!(tomb[p.id]&&tomb[p.id]>=(p.updatedAt||p.addedAt||0)))
     .sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
   state.deleted=tomb;save('sotd_deleted',state.deleted);
-  const seen=new Set(),hist=[];
-  [].concat(remote.history||[],state.history||[]).forEach(h=>{const k=h.name+'|'+h.date;if(!seen.has(k)){seen.add(k);hist.push(h);}});
-  state.history=hist.slice(0,14);
+  // merge history, deduping by wear id (or name+date) and keeping the rated copy
+  const byKey=new Map();
+  [].concat(remote.history||[],state.history||[]).forEach(h=>{
+    const k=h.hid||(h.name+'|'+h.date);
+    const ex=byKey.get(k);
+    if(!ex||(!ex.rating&&h.rating))byKey.set(k,h);
+  });
+  state.history=[...byKey.values()].slice(0,30);
   if((remote.updatedAt||0)>(state.updatedAt||0)){
     if(remote.occasion)state.occasion=remote.occasion;
     if(remote.key){state.key=remote.key;store.set('sotd_key',state.key);if($('#inKey'))$('#inKey').value=state.key;}
+    if(typeof remote.taste==='string'){state.taste=remote.taste;store.set('sotd_taste',state.taste);if($('#inTaste'))$('#inTaste').value=state.taste;}
   }
   state.updatedAt=Math.max(state.updatedAt||0,remote.updatedAt||0);
   save('sotd_updatedAt',state.updatedAt);

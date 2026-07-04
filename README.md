@@ -26,6 +26,20 @@ It's a self-contained `index.html` — no build step, no backend.
 > otherwise you get a blank screen. (This was the original bug: the file was
 > called `scent-of-the-day_1.html`.)
 
+## Advisor memory
+
+The app remembers your taste so its picks improve over time:
+
+- **Preference notes** — under **Settings → Advisor memory**, jot down anything
+  ("love vanilla in winter", "nothing heavy at the office", "rose makes me
+  sneeze"). The advisor reads these on every pick.
+- **Post-wear reactions** — after you tap *Wear it*, rate how it went (Loved it
+  / Solid / Too strong / Too faint / Wrong vibe). Those reactions are folded
+  into future recommendations, so the nose leans toward what you've loved and
+  steers clear of what didn't work.
+
+All of it persists locally and syncs across devices along with your shelf.
+
 ## Syncing across devices
 
 The app can keep your shelf, wear history, and photos in step between your
