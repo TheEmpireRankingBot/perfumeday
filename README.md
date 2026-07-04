@@ -26,6 +26,24 @@ It's a self-contained `index.html` — no build step, no backend.
 > otherwise you get a blank screen. (This was the original bug: the file was
 > called `scent-of-the-day_1.html`.)
 
+## Syncing across devices
+
+The app can keep your shelf, wear history, and photos in step between your
+phone and PC through a **private GitHub Gist** — no server required.
+
+1. Create a token at
+   [github.com/settings/tokens](https://github.com/settings/tokens/new?scopes=gist&description=Scent+of+the+Day)
+   with **only the `gist` scope** ticked.
+2. In the app, open **Settings → Cloud sync**, paste the token, and tap
+   **Enable sync**. The app creates one private Gist to hold your data.
+3. Repeat on your other device with the **same token**. That's it.
+
+After that it syncs automatically: it pulls when the app opens and pushes a
+moment after any change, plus there's a **Sync now** button. Edits from both
+devices are merged per bottle, and deletions carry across (they won't come
+back from a stale copy). The token is stored only on each device — never in
+the Gist.
+
 ## API key
 
 The "pick my scent" and "identify fragrance" features call the Anthropic API

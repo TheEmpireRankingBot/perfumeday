@@ -296,6 +296,16 @@ nav button.active::after{content:"";display:block;height:2px;background:linear-g
     </div>
 
     <div class="card">
+      <div class="eyebrow">Cloud sync</div>
+      <label class="f" for="inToken">GitHub token</label>
+      <input class="f" id="inToken" type="password" placeholder="ghp_… or github_pat_…" autocomplete="off">
+      <button class="btn" id="btnSaveToken">Enable sync</button>
+      <button class="btn ghost" id="btnSyncNow" style="margin-top:10px">Sync now</button>
+      <div class="status" id="syncStatus"></div>
+      <div class="note">Syncs your shelf, history and photos across devices through a <b>private GitHub Gist</b>. Create a token at <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Scent+of+the+Day" target="_blank">github.com/settings/tokens</a> with only the <b>gist</b> scope ticked, then paste it above. Stored only on this device — never in the Gist.</div>
+    </div>
+
+    <div class="card">
       <div class="eyebrow">Recent wears</div>
       <div id="histList" style="margin-top:12px"></div>
     </div>
@@ -355,7 +365,9 @@ let state = {
   perfumes: load('sotd_perfumes', []),
   history: load('sotd_history', []),
   occasion: 'Work',
-  weather: null
+  weather: null,
+  updatedAt: load('sotd_updatedAt', 0),
+  deleted: load('sotd_deleted', {})
 };
 
 /* ================= util ================= */
@@ -416,7 +428,7 @@ const occWrap=$('#occasions');
 OCCASIONS.forEach(o=>{
   const b=document.createElement('button');b.textContent=o;
   if(o===state.occasion)b.classList.add('sel');
-  b.onclick=()=>{state.occasion=o;occWrap.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');};
+  b.onclick=()=>{state.occasion=o;occWrap.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');touched();};
   occWrap.appendChild(b);
 });
 
@@ -484,7 +496,7 @@ $('#btnAdd').onclick=async()=>{
   const name=$('#inName').value.trim(),house=$('#inHouse').value.trim();
   const st=$('#addStatus');st.classList.remove('err');
   if(!name){st.textContent='Give the perfume a name first.';return;}
-  const p={id:uid(),name,house,accords:[],vibe:'',imageUrl:'',imageData:'',addedAt:Date.now()};
+  const p={id:uid(),name,house,accords:[],vibe:'',imageUrl:'',imageData:'',addedAt:Date.now(),updatedAt:Date.now()};
   $('#btnAdd').disabled=true;
   st.innerHTML='<span class="spin"></span>Searching the web for this fragrance…';
   try{
@@ -504,9 +516,10 @@ Search the web for its Fragrantica page to confirm it. Then respond with ONLY a 
     if(e.message==='NO_KEY'){st.classList.add('err');st.textContent='Add your API key in Settings first — saved without details.';}
     else{st.classList.add('err');st.textContent='Saved, but identification failed: '+e.message;}
   }
+  p.updatedAt=Date.now();
   state.perfumes.push(p);save('sotd_perfumes',state.perfumes);
   $('#inName').value='';$('#inHouse').value='';
-  renderShelf();$('#btnAdd').disabled=false;
+  renderShelf();$('#btnAdd').disabled=false;touched();
 };
 
 /* ================= edit sheet ================= */
@@ -541,8 +554,9 @@ $('#fileInput').onchange=e=>{
     c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
     c.getContext('2d').drawImage(img,0,0,c.width,c.height);
     p.imageData=c.toDataURL('image/jpeg',0.82);
+    p.updatedAt=Date.now();
     save('sotd_perfumes',state.perfumes);
-    refreshSheetThumb(p);renderShelf();
+    refreshSheetThumb(p);renderShelf();touched();
     URL.revokeObjectURL(img.src);
   };
   img.src=URL.createObjectURL(f);
@@ -550,9 +564,9 @@ $('#fileInput').onchange=e=>{
 };
 $('#btnClearImg').onclick=()=>{
   const p=state.perfumes.find(x=>x.id===editId);if(!p)return;
-  p.imageData='';p.imageUrl='';p.fragUrl='';$('#sheetUrl').value='';$('#sheetFrag').innerHTML='';
+  p.imageData='';p.imageUrl='';p.fragUrl='';p.updatedAt=Date.now();$('#sheetUrl').value='';$('#sheetFrag').innerHTML='';
   save('sotd_perfumes',state.perfumes);
-  refreshSheetThumb(p);renderShelf();
+  refreshSheetThumb(p);renderShelf();touched();
 };
 $('#btnSheetSave').onclick=()=>{
   const p=state.perfumes.find(x=>x.id===editId);if(!p)return;
@@ -560,15 +574,17 @@ $('#btnSheetSave').onclick=()=>{
   if(u&&fragId(u)){p.fragUrl=u.startsWith('http')?u:'https://'+u;p.imageData='';}
   else if(u&&u.startsWith('http')){p.imageUrl=u;p.imageData='';}
   else if(!u){p.imageUrl='';p.fragUrl='';}
+  p.updatedAt=Date.now();
   save('sotd_perfumes',state.perfumes);
-  renderShelf();closeSheet();
+  renderShelf();closeSheet();touched();
 };
 $('#btnSheetDelete').onclick=()=>{
   const p=state.perfumes.find(x=>x.id===editId);if(!p)return;
   if(confirm(`Remove ${p.name} from your shelf?`)){
     state.perfumes=state.perfumes.filter(x=>x.id!==editId);
+    state.deleted[editId]=Date.now();save('sotd_deleted',state.deleted);
     save('sotd_perfumes',state.perfumes);
-    renderShelf();closeSheet();
+    renderShelf();closeSheet();touched();
   }
 };
 
@@ -621,7 +637,7 @@ window._wear=(id,btn)=>{
   state.history.unshift({name:p.name,date:new Date().toLocaleDateString(undefined,{day:'numeric',month:'short'})});
   state.history=state.history.slice(0,14);
   save('sotd_history',state.history);renderHistory();
-  btn.textContent='Worn ✓';btn.disabled=true;
+  btn.textContent='Worn ✓';btn.disabled=true;touched();
 };
 
 /* ================= settings ================= */
@@ -635,17 +651,156 @@ $('#btnSaveKey').onclick=()=>{
   state.key=$('#inKey').value.trim();
   store.set('sotd_key',state.key);
   $('#keyStatus').textContent=state.key?'Key saved on this device.':'Key cleared.';
+  touched();
 };
 $('#btnWipe').onclick=()=>{
-  if(confirm('Erase your shelf, history and API key from this device?')){
-    ['sotd_key','sotd_perfumes','sotd_history'].forEach(store.del);
-    state={key:'',perfumes:[],history:[],occasion:state.occasion,weather:state.weather};
-    $('#inKey').value='';renderShelf();renderHistory();
+  if(confirm('Erase your shelf, history, API key and sync link from this device?')){
+    ['sotd_key','sotd_perfumes','sotd_history','sotd_updatedAt','sotd_deleted','sotd_gh_token','sotd_gist_id','sotd_last_sync'].forEach(store.del);
+    state={key:'',perfumes:[],history:[],occasion:state.occasion,weather:state.weather,updatedAt:0,deleted:{}};
+    $('#inKey').value='';$('#inToken').value='';renderShelf();renderHistory();
     $('#keyStatus').textContent='All data erased.';
+    setSyncStatus('');
   }
 };
 
+/* ================= cloud sync (private GitHub Gist) ================= */
+const GH_FILE='scent-of-the-day.json';
+const GH_DESC='Scent of the Day — sync data (do not edit by hand)';
+const GH={
+  token(){return store.get('sotd_gh_token')||'';},
+  gid(){return store.get('sotd_gist_id')||'';},
+  async api(path,opts={}){
+    const r=await fetch('https://api.github.com'+path,{...opts,headers:{
+      'Authorization':'Bearer '+this.token(),
+      'Accept':'application/vnd.github+json',
+      'X-GitHub-Api-Version':'2022-11-28',
+      ...(opts.headers||{})
+    }});
+    if(!r.ok){
+      let msg=r.status+'';
+      try{const e=await r.json();if(e.message)msg=e.message;}catch(_){}
+      if(r.status===401)msg='token rejected — check it has the "gist" scope';
+      throw new Error(msg);
+    }
+    return r.status===204?null:r.json();
+  },
+  async ensureGist(){
+    if(this.gid())return this.gid();
+    const list=await this.api('/gists?per_page=100');
+    const found=(list||[]).find(g=>g.files&&g.files[GH_FILE]);
+    let id;
+    if(found)id=found.id;
+    else{
+      const g=await this.api('/gists',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({description:GH_DESC,public:false,files:{[GH_FILE]:{content:'{}'}}})});
+      id=g.id;
+    }
+    store.set('sotd_gist_id',id);
+    return id;
+  },
+  async pull(){
+    const id=await this.ensureGist();
+    const g=await this.api('/gists/'+id);
+    const f=g.files&&g.files[GH_FILE];
+    if(!f)return null;
+    let content=f.content;
+    if(f.truncated){const rr=await fetch(f.raw_url,{headers:{'Authorization':'Bearer '+this.token()}});content=await rr.text();}
+    try{return JSON.parse(content);}catch(e){return null;}
+  },
+  async push(payload){
+    const id=await this.ensureGist();
+    await this.api('/gists/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({files:{[GH_FILE]:{content:JSON.stringify(payload)}}})});
+  }
+};
+
+function setSyncStatus(html,err){const el=$('#syncStatus');if(!el)return;el.classList.toggle('err',!!err);el.innerHTML=html;}
+function syncedLabel(){return 'Synced ✓ '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function localPayload(){return {v:1,updatedAt:state.updatedAt||0,occasion:state.occasion,key:state.key,perfumes:state.perfumes,history:state.history,deleted:state.deleted||{}};}
+
+/* union-merge remote into local so edits from both devices survive;
+   tombstones (state.deleted) make deletions win over stale copies */
+function mergeRemote(remote){
+  if(!remote||typeof remote!=='object')return;
+  // merge tombstones (keep the latest delete time per id)
+  const tomb=Object.assign({},state.deleted||{});
+  const rt=remote.deleted||{};
+  for(const id in rt)tomb[id]=Math.max(tomb[id]||0,rt[id]||0);
+  const byId={};
+  (state.perfumes||[]).forEach(p=>byId[p.id]=p);
+  (remote.perfumes||[]).forEach(p=>{
+    const cur=byId[p.id];
+    if(!cur||(p.updatedAt||p.addedAt||0)>=(cur.updatedAt||cur.addedAt||0))byId[p.id]=p;
+  });
+  // drop anything deleted after its last edit
+  state.perfumes=Object.values(byId)
+    .filter(p=>!(tomb[p.id]&&tomb[p.id]>=(p.updatedAt||p.addedAt||0)))
+    .sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
+  state.deleted=tomb;save('sotd_deleted',state.deleted);
+  const seen=new Set(),hist=[];
+  [].concat(remote.history||[],state.history||[]).forEach(h=>{const k=h.name+'|'+h.date;if(!seen.has(k)){seen.add(k);hist.push(h);}});
+  state.history=hist.slice(0,14);
+  if((remote.updatedAt||0)>(state.updatedAt||0)){
+    if(remote.occasion)state.occasion=remote.occasion;
+    if(remote.key){state.key=remote.key;store.set('sotd_key',state.key);if($('#inKey'))$('#inKey').value=state.key;}
+  }
+  state.updatedAt=Math.max(state.updatedAt||0,remote.updatedAt||0);
+  save('sotd_updatedAt',state.updatedAt);
+  save('sotd_perfumes',state.perfumes);
+  save('sotd_history',state.history);
+}
+
+function updateOccasionUI(){occWrap&&occWrap.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x.textContent===state.occasion));}
+
+/* full two-way sync: pull + merge + push the merged result */
+let syncing=false;
+async function syncNow(silent){
+  if(!GH.token()){if(!silent)setSyncStatus('Add a GitHub token first.',true);return;}
+  if(syncing)return;
+  syncing=true;
+  if(!silent)setSyncStatus('<span class="spin"></span>Syncing…');
+  try{
+    mergeRemote(await GH.pull());
+    await GH.push(localPayload());
+    store.set('sotd_last_sync',Date.now());
+    renderShelf();renderHistory();updateOccasionUI();
+    setSyncStatus(syncedLabel());
+  }catch(e){setSyncStatus('Sync failed: '+e.message,true);}
+  finally{syncing=false;}
+}
+
+/* debounced background push after a local change */
+let pushTimer;
+function syncPushSoon(){
+  if(!GH.token())return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(()=>{
+    GH.push(localPayload())
+      .then(()=>{store.set('sotd_last_sync',Date.now());setSyncStatus(syncedLabel());})
+      .catch(e=>setSyncStatus('Sync failed: '+e.message,true));
+  },1200);
+}
+
+/* called after any local mutation: stamp time, persist, schedule push */
+function touched(){
+  state.updatedAt=Date.now();
+  save('sotd_updatedAt',state.updatedAt);
+  syncPushSoon();
+}
+
+if(GH.token())$('#inToken').value=GH.token();
+$('#btnSaveToken').onclick=async()=>{
+  const t=$('#inToken').value.trim();
+  store.set('sotd_gh_token',t);
+  if(!t){store.del('sotd_gist_id');setSyncStatus('Sync disabled.');return;}
+  setSyncStatus('<span class="spin"></span>Connecting…');
+  try{await GH.ensureGist();await syncNow(false);}
+  catch(e){setSyncStatus('Could not connect: '+e.message,true);}
+};
+$('#btnSyncNow').onclick=()=>syncNow(false);
+
 renderShelf();renderHistory();
+if(GH.token())syncNow(true);
 </script>
 </body>
 </html>
