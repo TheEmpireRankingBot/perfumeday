@@ -1,0 +1,14 @@
+# Cloudflare Worker config for the Scent of the Day Anthropic proxy.
+# No secrets live here. Set the API key with:
+#   wrangler secret put ANTHROPIC_API_KEY
+# and (optionally) an abuse guard with:
+#   wrangler secret put APP_SECRET
+
+name = "scent-of-the-day-proxy"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Optional: lock CORS to your site's origin (recommended once you know your URL).
+# Leave commented to allow any origin.
+# [vars]
+# ALLOWED_ORIGIN = "https://YOUR-USERNAME.github.io"
