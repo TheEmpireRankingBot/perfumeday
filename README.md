@@ -75,7 +75,7 @@ This runs strict TypeScript checks, the deterministic scoring and migration test
 
    `AI_MODEL` is configuration, while the API key remains a Worker secret. Without a key, PerfumeDay uses its built-in deterministic explanations.
 
-3. Attach a Cloudflare-managed custom hostname, put it behind Cloudflare Access, and allow only the owner email. `workers.dev` is disabled and `REQUIRE_ACCESS` is `true`, so the app is private by default.
+3. In Workers & Pages, open PerfumeDay's Domains settings and restrict its `workers.dev` route with Cloudflare Access. Allow only the owner email. The Worker validates the Access JWT's signature, issuer, audience, and email claim; `REQUIRE_ACCESS` fails closed if the token or validation settings are missing. A custom hostname can replace `workers.dev` later.
 
 The scheduled trigger is `0 22 * * *` UTC, which is 06:00 in Singapore. Opening the app from a different location recomputes against live context.
 

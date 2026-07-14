@@ -80,8 +80,8 @@ try {
   Invoke-Checked npx wrangler deploy
 
   Write-Host ''
-  Write-Host 'Deployment complete. workers.dev is disabled by design.'
-  Write-Host 'Attach a Cloudflare-managed custom hostname and protect it with an Access Allow policy for your email.'
+  Write-Host 'Deployment complete.'
+  Write-Host 'Protect the workers.dev route with Cloudflare Access and an Allow policy for your email. A custom hostname can be attached later.'
 }
 finally {
   Pop-Location

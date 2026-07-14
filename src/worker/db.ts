@@ -16,6 +16,8 @@ export interface Env {
   DEFAULT_LATITUDE: string;
   DEFAULT_LONGITUDE: string;
   REQUIRE_ACCESS?: string;
+  TEAM_DOMAIN?: string;
+  POLICY_AUD?: string;
 }
 
 const nowIso = () => new Date().toISOString();

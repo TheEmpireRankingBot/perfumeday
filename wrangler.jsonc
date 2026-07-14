@@ -1,7 +1,8 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "perfumeday",
-  "workers_dev": false,
+  "workers_dev": true,
+  "preview_urls": false,
   "main": "./src/worker/index.ts",
   "compatibility_date": "2026-07-14",
   "observability": { "enabled": true },
@@ -13,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "perfumeday",
-      "database_id": "replace-after-wrangler-d1-create",
+      "database_id": "50e2508d-4a25-4d4c-aa07-0f19db39bb1e",
       "migrations_dir": "migrations"
     }
   ],
@@ -25,6 +26,8 @@
     "DEFAULT_LATITUDE": "1.3521",
     "DEFAULT_LONGITUDE": "103.8198",
     "REQUIRE_ACCESS": "true",
+    "TEAM_DOMAIN": "https://chuabohao.cloudflareaccess.com",
+    "POLICY_AUD": "fb7737711c542b50ea7e80b51e90764460d4f5748a7662d54f638a6f4e056ad3",
     "AI_MODEL": "claude-sonnet-4-5"
   }
 }

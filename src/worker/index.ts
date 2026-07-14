@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createManualProfile } from '../shared/catalog';
 import { migrateLegacyStorage } from '../shared/migration';
 import { buildRecommendation, dayPartFromHour, ENGINE_VERSION, hashContext } from '../shared/scoring';
@@ -79,6 +80,9 @@ const secureHeaders = {
   'X-Content-Type-Options': 'nosniff',
 };
 
+let accessJwks: ReturnType<typeof createRemoteJWKSet> | undefined;
+let accessJwksUrl = '';
+
 function json(value: unknown, status = 200): Response {
   return Response.json(value, { status, headers: secureHeaders });
 }
@@ -93,13 +97,34 @@ async function body<T>(request: Request, schema: z.ZodType<T>, maxBytes = 100_00
   return parsed.data;
 }
 
-function identityEmail(request: Request, env: Env): string {
-  const email = request.headers.get('Cf-Access-Authenticated-User-Email');
-  if (email) return email.toLowerCase();
+async function identityEmail(request: Request, env: Env): Promise<string> {
   const hostname = new URL(request.url).hostname;
   if (hostname === 'localhost' || hostname === '127.0.0.1') return 'developer@perfumeday.local';
-  if (env.REQUIRE_ACCESS !== 'false') throw new HttpError(401, 'PerfumeDay is private. Sign in through Cloudflare Access.');
-  return 'owner@perfumeday.local';
+  if (env.REQUIRE_ACCESS === 'false') {
+    return request.headers.get('Cf-Access-Authenticated-User-Email')?.toLowerCase() || 'owner@perfumeday.local';
+  }
+
+  if (!env.TEAM_DOMAIN || !env.POLICY_AUD) {
+    throw new HttpError(503, 'Access validation is not configured.');
+  }
+  const token = request.headers.get('Cf-Access-Jwt-Assertion');
+  if (!token) throw new HttpError(401, 'PerfumeDay is private. Sign in through Cloudflare Access.');
+
+  try {
+    const jwksUrl = `${env.TEAM_DOMAIN}/cdn-cgi/access/certs`;
+    if (!accessJwks || accessJwksUrl !== jwksUrl) {
+      accessJwks = createRemoteJWKSet(new URL(jwksUrl));
+      accessJwksUrl = jwksUrl;
+    }
+    const { payload } = await jwtVerify(token, accessJwks, {
+      issuer: env.TEAM_DOMAIN,
+      audience: env.POLICY_AUD,
+    });
+    if (typeof payload.email !== 'string' || !payload.email) throw new Error('Access token has no email claim.');
+    return payload.email.toLowerCase();
+  } catch {
+    throw new HttpError(401, 'Cloudflare Access session is invalid.');
+  }
 }
 
 async function fetchWeather(latitude: number, longitude: number): Promise<WeatherContext> {
@@ -199,7 +224,7 @@ async function maybeExplain(env: Env, userId: string, result: RecommendationResu
 
 async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const email = identityEmail(request, env);
+  const email = await identityEmail(request, env);
   const userId = await ensureUser(env, email);
 
   if (request.method === 'GET' && url.pathname === '/api/bootstrap') return json(await loadState(env, userId));
