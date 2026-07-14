@@ -55,36 +55,27 @@ This runs strict TypeScript checks, the deterministic scoring and migration test
 
 ## Cloudflare deployment
 
-1. Authenticate and create the D1 database:
+1. Authenticate:
 
    ```powershell
    npx wrangler login
-   npx wrangler d1 create perfumeday
    ```
 
-2. Replace `replace-after-wrangler-d1-create` in `wrangler.jsonc` with the returned database ID.
-
-3. Apply the schema:
+2. Run the idempotent provisioner. It finds or creates the Asia-Pacific D1 database, writes its UUID into `wrangler.jsonc`, runs checks, applies migrations, and deploys:
 
    ```powershell
-   npm run db:migrate:remote
+   npm run provision
    ```
 
-4. Optional AI explanations:
+   To configure optional AI explanations during the same flow:
 
    ```powershell
-   npx wrangler secret put ANTHROPIC_API_KEY
+   npm run provision -- -ConfigureAi
    ```
 
    `AI_MODEL` is configuration, while the API key remains a Worker secret. Without a key, PerfumeDay uses its built-in deterministic explanations.
 
-5. Deploy:
-
-   ```powershell
-   npm run deploy
-   ```
-
-6. Put the deployed custom hostname behind Cloudflare Access and allow only the owner email. Keep `REQUIRE_ACCESS` set to `true` in production.
+3. Attach a Cloudflare-managed custom hostname, put it behind Cloudflare Access, and allow only the owner email. `workers.dev` is disabled and `REQUIRE_ACCESS` is `true`, so the app is private by default.
 
 The scheduled trigger is `0 22 * * *` UTC, which is 06:00 in Singapore. Opening the app from a different location recomputes against live context.
 

@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc --noEmit && vitest run && vite build",
+    "deploy:dry": "wrangler deploy --dry-run",
+    "provision": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/provision-cloudflare.ps1",
     "deploy": "npm run check && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply perfumeday --local",
     "db:migrate:remote": "wrangler d1 migrations apply perfumeday --remote"
