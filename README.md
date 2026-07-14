@@ -1,101 +1,115 @@
-# Scent of the Day — Eau de Jour
+# PerfumeDay
 
-A single-page web app that recommends which perfume from your collection to
-wear today, based on the weather, the occasion, and what you've worn recently.
-It's a self-contained `index.html` — no build step, no backend.
+PerfumeDay is a private, weather-aware fragrance advisor. It opens with one stable daily recommendation from your owned wardrobe, explains the score, lets you override the occasion/mood/setting, and learns gradually from actual wears.
 
-## Features
+The recommendation winner is deterministic and testable. AI is optional and may only rewrite the explanation for an already-selected winner; it cannot substitute a different fragrance.
 
-- **Today** — reads your local weather (via [Open-Meteo](https://open-meteo.com/))
-  and picks a scent for your chosen occasion.
-- **Shelf** — add your fragrances; the app looks each one up on the web for its
-  accords, character, and a bottle photo. You can also upload your own photo.
-- **Settings** — connect the AI (via a key-safe proxy, or a local key), record
-  your taste, enable cross-device sync, and view your recent wears.
+## What ships in v2
 
-## Running it
+- Automatic recommendation on open using temperature, apparent temperature, humidity, rain, time, occasion, setting, taste, feedback, and rotation.
+- A visible 100-point breakdown across climate, occasion, taste, time, rotation, and vibe.
+- Eleven curated starter profiles: Louis Vuitton Imagination, Bujairami Psycho, Van Cleef & Arpels Moonlight Patchouli, Dior Lucky, Dior Homme, Chanel Allure Homme Sport, Giorgio Armani Acqua di Giò, Le Labo Santal 33, LOE White Shirts, Soulvent Pilgrim’s Path, and Montblanc Explorer.
+- Quick overrides without changing the default routine.
+- D1-backed wardrobe, recommendation locks, wear history, and feedback.
+- A one-time importer for the original localStorage/Gist data. API keys, proxy secrets, GitHub tokens, and Gist IDs are deliberately excluded.
+- Cloudflare Access-aware identity and a scheduled 06:00 Singapore recommendation.
+- Device-local fallback mode when the API or weather service is unavailable.
 
-**Locally:** just open `index.html` in any modern browser.
+## Architecture
 
-**Hosted (GitHub Pages):**
-1. Go to the repo's **Settings → Pages**.
-2. Under *Source*, choose **Deploy from a branch**, pick `main` and `/ (root)`.
-3. Save. Your app will be live at `https://<username>.github.io/perfumeday/`.
+- React 19 + TypeScript + Vite frontend
+- Cloudflare Worker API and static-asset deployment
+- Cloudflare D1 database
+- Cloudflare Access for the private owner allowlist
+- Open-Meteo weather data
+- Optional Anthropic explanation generation using a Worker secret
 
-> The file **must** be named `index.html` for the site's root URL to load —
-> otherwise you get a blank screen. (This was the original bug: the file was
-> called `scent-of-the-day_1.html`.)
+The v1 single-file app and proxy are preserved under `legacy/` for migration reference and rollback. They are not part of the v2 build.
 
-## Advisor memory
+## Local development
 
-The app remembers your taste so its picks improve over time:
+Requirements: Node.js 24+ and npm.
 
-- **Preference notes** — under **Settings → Advisor memory**, jot down anything
-  ("love vanilla in winter", "nothing heavy at the office", "rose makes me
-  sneeze"). The advisor reads these on every pick.
-- **Post-wear reactions** — after you tap *Wear it*, rate how it went (Loved it
-  / Solid / Too strong / Too faint / Wrong vibe). Those reactions are folded
-  into future recommendations, so the nose leans toward what you've loved and
-  steers clear of what didn't work.
-
-A pick can be a **single scent or a layered pair** — when two fragrances on your
-shelf would combine into something better for the day, the advisor suggests a
-combo, naming the base (sprayed first, on skin) and the top, with how to apply
-each. Rating a combo teaches your taste memory just like a single wear.
-
-All of it persists locally and syncs across devices along with your shelf.
-
-## Syncing across devices
-
-The app can keep your shelf, wear history, and photos in step between your
-phone and PC through a **private GitHub Gist** — no server required.
-
-1. Create a token at
-   [github.com/settings/tokens](https://github.com/settings/tokens/new?scopes=gist&description=Scent+of+the+Day)
-   with **only the `gist` scope** ticked.
-2. In the app, open **Settings → Cloud sync**, paste the token, and tap
-   **Enable sync**. The app creates one private Gist to hold your data.
-3. Repeat on your other device with the **same token**. That's it.
-
-After that it syncs automatically: it pulls when the app opens and pushes a
-moment after any change, plus there's a **Sync now** button. Edits from both
-devices are merged per bottle, and deletions carry across (they won't come
-back from a stale copy). The token is stored only on each device — never in
-the Gist.
-
-## Keeping your API key safe (proxy)
-
-This is a **public** site, so it can never contain your Anthropic API key: any
-key placed in the code (or committed to the repo) is scraped and **auto-revoked**
-by Anthropic's secret scanning. The safe way to power the AI features is a tiny
-proxy that holds the key as a **server secret** and forwards requests to
-Anthropic. The app calls the proxy — the key is never in the repo or any browser.
-
-A ready-to-deploy [Cloudflare Worker](https://developers.cloudflare.com/workers/)
-lives in [`proxy/`](proxy/). Free tier is plenty.
-
-```bash
-npm install -g wrangler          # one-time
-cd proxy
-wrangler login
-wrangler deploy                  # prints your Worker URL
-wrangler secret put ANTHROPIC_API_KEY   # paste your sk-ant-… key when prompted
-# optional hardening:
-wrangler secret put APP_SECRET   # a random string; also enter it in the app
+```powershell
+npm install
+npm run db:migrate:local
+npm run dev
 ```
 
-Then in the app open **Settings → Connection**, paste the Worker URL into
-**Proxy URL** (and the `APP_SECRET`, if you set one). Done — every device uses
-the proxy and no key ever touches the client.
+Open `http://127.0.0.1:5173`. Localhost uses a development identity; deployed environments require the Cloudflare Access identity header unless `REQUIRE_ACCESS` is explicitly set to `false`.
 
-To lock the proxy to your site only, uncomment `ALLOWED_ORIGIN` in
-[`proxy/wrangler.toml`](proxy/wrangler.toml) and redeploy. Since anyone who
-learns the Worker URL could call it, don't publish the URL, and set an
-`APP_SECRET` if you want an extra gate.
+If Miniflare cannot fetch its optional `Request.cf` sample because of a restricted network, start it with the fetch disabled:
 
-### Direct-key fallback (local use only)
+```powershell
+$env:CLOUDFLARE_CF_FETCH_ENABLED='false'
+npm run dev
+```
 
-For running `index.html` straight off your disk you can instead paste a key into
-**Settings → Anthropic API key**. It's stored only in that browser's
-`localStorage` and sent straight to `api.anthropic.com`. **Never** use this on the
-hosted public site, and never hardcode or commit a key.
+## Verification
+
+```powershell
+npm run check
+```
+
+This runs strict TypeScript checks, the deterministic scoring and migration tests, and a production Worker/client build. GitHub Actions runs the same command for pushes and pull requests.
+
+## Cloudflare deployment
+
+1. Authenticate and create the D1 database:
+
+   ```powershell
+   npx wrangler login
+   npx wrangler d1 create perfumeday
+   ```
+
+2. Replace `replace-after-wrangler-d1-create` in `wrangler.jsonc` with the returned database ID.
+
+3. Apply the schema:
+
+   ```powershell
+   npm run db:migrate:remote
+   ```
+
+4. Optional AI explanations:
+
+   ```powershell
+   npx wrangler secret put ANTHROPIC_API_KEY
+   ```
+
+   `AI_MODEL` is configuration, while the API key remains a Worker secret. Without a key, PerfumeDay uses its built-in deterministic explanations.
+
+5. Deploy:
+
+   ```powershell
+   npm run deploy
+   ```
+
+6. Put the deployed custom hostname behind Cloudflare Access and allow only the owner email. Keep `REQUIRE_ACCESS` set to `true` in production.
+
+The scheduled trigger is `0 22 * * *` UTC, which is 06:00 in Singapore. Opening the app from a different location recomputes against live context.
+
+## Recommendation policy
+
+The 100 available points are allocated as follows:
+
+| Factor | Points |
+| --- | ---: |
+| Climate and environment | 25 |
+| Occasion | 25 |
+| Personal taste feedback | 20 |
+| Daypart | 10 |
+| Rotation | 10 |
+| Desired vibe | 10 |
+
+Extra context penalties handle hot indoor projection, prior “too strong” feedback in similar conditions, and disliked wears. Feedback uses confidence shrinkage so a single rating cannot dominate the profile.
+
+## Data migration and privacy
+
+On first open at the old origin, the client detects `sotd_perfumes`, `sotd_history`, and `sotd_taste` and imports only those fields. The following v1 values are never sent to the v2 importer:
+
+- `sotd_key`
+- `sotd_proxysecret`
+- `sotd_gh_token`
+- `sotd_gist_id`
+
+After a successful import, `perfumeday-v2-migrated` prevents duplicate imports. The original local data is left intact for manual recovery.

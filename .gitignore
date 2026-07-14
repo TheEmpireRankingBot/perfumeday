@@ -1,8 +1,13 @@
 # Never commit secrets or local build artifacts
 .dev.vars
-proxy/.dev.vars
+**/.dev.vars
+.env
+.env.*
+!.env.example
 .wrangler/
-proxy/.wrangler/
+**/.wrangler/
 node_modules/
+dist/
+coverage/
 *.log
 .DS_Store
